@@ -1,0 +1,89 @@
+Description: >
+    Create an ubuntu-bastion in the public subnet(t2.micro), SecGroup configured for only ssh'ing in the private subnet
+      Note: Use ssh-add & ssh -A, don't poop keys all over the place
+
+Parameters:
+  EnvironmentName:
+    Description: Don't forget, we always setup the Parameters we gonna use in the script
+    Type: String
+    Default: AVALANCHE
+
+
+   # Don't forget to Import, Don't Hardcode stuff if you can automate, or just use Default: AVALANCHE
+
+  KeyName: 
+    Description: "Create the Key manually, or ssm"
+    Type: "AWS::EC2::KeyPair::KeyName"
+    Default: BastionKey #The name of the key in the console
+
+Resources:
+
+  BastionInstance:    #Create the EC2 and attach the SecGroup
+      Type: AWS::EC2::Instance
+      Properties:
+          ImageId: ami-005bdb005fb00e791
+          KeyName: !Ref KeyName   #Make the key as a var for rotation
+          InstanceType: t2.micro #No need for var, bastion shouldn't be dynamic
+          SecurityGroupIds:
+          - !Ref BASTIONSecGroup
+          SubnetId: 
+            Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN" #This is the exported Var from the Net Script
+          BlockDeviceMappings:
+          -
+            DeviceName: /dev/sda1
+            Ebs:
+              VolumeSize: 10
+          #-
+          #DeviceName: /dev/sdm   #Just in case you need more Storage in a bastion #lol
+          #Ebs:
+            #VolumeSize: 100
+
+
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref ProdInstance #Here, you give the IP to the instance
+
+  BASTIONSecGroup:    #Create the Sec GROUP for the BASTION
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH from public
+      VpcId:
+        Fn::ImportValue: !Sub "${EnvironmentName}-VPCID" 
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65535
+        CidrIp: 0.0.0.0/0
+
+
+
+Outputs:           #Export Vars for the next Script
+
+ InstanceId: 
+  Description: "InstanceId of the newly created EC2 instance"
+  Value: 
+   Ref: BastionInstance
+ 
+ 
+ PublicIP: 
+  Description: "Public IP address of the newly created EC2 instance"
+  Value: 
+   "Fn::GetAtt": 
+    - BastionInstance
+    - PublicIp
+
+ SGBastion:
+    Description: Bastion SecurityGroup Export
+    Value: 
+      !GetAtt
+        - BASTIONSecGroup
+        - GroupId
+    Export:
+      Name: !Sub "${EnvironmentName}-BASTIONSecGroupID" 
+

@@ -1,0 +1,12 @@
+[ {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "AVALANCHE"
+  },
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": "BastionKey"
+  }
+
+    
+  
+]

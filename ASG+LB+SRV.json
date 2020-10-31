@@ -1,0 +1,14 @@
+[ 
+    {
+    "ParameterKey": "AMI",
+    "ParameterValue": "ami-005bdb005fb00e791"
+  },
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": "BastionKey"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t2.micro"
+  }
+]

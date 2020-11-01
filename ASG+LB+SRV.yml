@@ -19,7 +19,7 @@ Parameters:
       Description: 'The Machine Image to be used. Please use an Ubuntu Machine Image Specific to your region. Default is set to an AMI
       in the us-west-2 region.'
       Type: String
-      Default: ami-07a29e5e945228fa1
+      Default: ami-0b37e9efc396e4c38
       
   InstanceType:
       Description: You might want to upscale later on
@@ -51,7 +51,7 @@ Resources:
         - !Ref EC2SecGroup
       UserData:
        Fn::Base64: 
-        Fn::Join: [ "", ["#!/bin/bash \n", "apt update -y \n", "sleep 15 \n", "apt upgrade -y \n", "sleep 15 \n", "apt-get install unzip awscli -y \n", "sleep 15 \n", "apt install -y apache2 \n", "systemctl enable --now apache2.service \n", "cd /var/www/html \n", "aws s3 cp s3://udacity-demo-aurond/udacity.zip . \n", "unzip -o udacity.zip \n" ] ]
+        Fn::Join: [ "", ["#!/bin/bash \n", "apt-get update -y \n", "apt-get install unzip awscli -y \n", "apt-get install apache2 -y \n", "systemctl start apache2 \n", "aws s3 cp s3://udacity-demo-aurond/udacity.zip /var/www/html/ \n", "cd /var/www/html; unzip -o udacity.zip \n" ] ]
    S3ReadRole:
     Type: AWS::IAM::Role
     Properties:
@@ -133,16 +133,16 @@ Resources:
     DependsOn: 
       - WebAppLB
     Properties:
-      TargetType: instance  #the default is "instance" but we must use ip to forward to fargate
+      TargetType: instance  
       VpcId: 
         Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
       Protocol: HTTP
       Port: 80
       HealthCheckPath: /
       HealthCheckIntervalSeconds: 15
-      HealthCheckTimeoutSeconds: 5
+      HealthCheckTimeoutSeconds: 10
       HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 5
+      UnhealthyThresholdCount: 9
 
    ALBListenerRule:
       Type: AWS::ElasticLoadBalancingV2::ListenerRule

@@ -1,7 +1,6 @@
 Description: >
     Create an ubuntu-bastion in the public subnet(t2.micro), SecGroup configured for only ssh'ing in the private subnet
       Note: Use ssh-add & ssh -A, don't poop keys all over the place
-
 Parameters:
   EnvironmentName:
     Description: Don't forget, we always setup the Parameters we gonna use in the script
@@ -37,12 +36,6 @@ Resources:
           #DeviceName: /dev/sdm   #Just in case you need more Storage in a bastion #lol
           #Ebs:
             #VolumeSize: 100
-
-
-  EIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      InstanceId: !Ref ProdInstance #Here, you give the IP to the instance
 
   BASTIONSecGroup:    #Create the Sec GROUP for the BASTION
     Type: AWS::EC2::SecurityGroup
@@ -86,4 +79,3 @@ Outputs:           #Export Vars for the next Script
         - GroupId
     Export:
       Name: !Sub "${EnvironmentName}-BASTIONSecGroupID" 
-

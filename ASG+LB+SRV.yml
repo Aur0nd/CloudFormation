@@ -51,7 +51,7 @@ Resources:
         - !Ref EC2SecGroup
       UserData:
        Fn::Base64: 
-        Fn::Join: [ "", ["#!/bin/bash \n", "apt update -y \n","sleep 15 \n", "apt upgrade -y \n", sleep 15 \n", "apt-get install unzip awscli -y \n", "sleep 15 \n", "apt install -y apache2 \n", "systemctl enable --now apache2.service \n", "cd /var/www/html \n", "aws s3 cp s3://udacity-demo-aurond/udacity.zip . \n", "unzip -o udacity.zip \n" ] ]
+        Fn::Join: [ "", ["#!/bin/bash \n", "apt update -y \n", "sleep 15 \n", "apt upgrade -y \n", "sleep 15 \n", "apt-get install unzip awscli -y \n", "sleep 15 \n", "apt install -y apache2 \n", "systemctl enable --now apache2.service \n", "cd /var/www/html \n", "aws s3 cp s3://udacity-demo-aurond/udacity.zip . \n", "unzip -o udacity.zip \n" ] ]
    S3ReadRole:
     Type: AWS::IAM::Role
     Properties:

@@ -19,7 +19,7 @@ Parameters:
       Description: 'The Machine Image to be used. Please use an Ubuntu Machine Image Specific to your region. Default is set to an AMI
       in the us-west-2 region.'
       Type: String
-      Default: ami-005bdb005fb00e791
+      Default: ami-07a29e5e945228fa1
       
   InstanceType:
       Description: You might want to upscale later on
@@ -39,6 +39,7 @@ Resources:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties: 
       ImageId: !Ref AMI
+      KeyName: !Ref KeyName
       InstanceType: !Ref InstanceType
       BlockDeviceMappings: 
       - DeviceName: /dev/sda1
@@ -48,8 +49,9 @@ Resources:
       IamInstanceProfile: !Ref InstanceProfileRole
       SecurityGroups:
         - !Ref EC2SecGroup
-      UserData:  
-        Fn::Join: [ "", ["#!/bin/bash \n", "apt-get update -y \n", "apt-get install unzip awscli -y \n", "apt-get install apache2 -y \n", "systemctl start apache2.service \n", "cd /var/www/html \n", "aws s3 cp s3://udacity-demo-aurond/udacity.zip . \n", "unzip -o udacity.zip \n" ] ]
+      UserData:
+       Fn::Base64: 
+        Fn::Join: [ "", ["#!/bin/bash \n", "apt update -y \n","sleep 15 \n", "apt upgrade -y \n", sleep 15 \n", "apt-get install unzip awscli -y \n", "sleep 15 \n", "apt install -y apache2 \n", "systemctl enable --now apache2.service \n", "cd /var/www/html \n", "aws s3 cp s3://udacity-demo-aurond/udacity.zip . \n", "unzip -o udacity.zip \n" ] ]
    S3ReadRole:
     Type: AWS::IAM::Role
     Properties:
@@ -57,7 +59,7 @@ Resources:
         - "arn:aws:iam::aws:policy/CloudWatchFullAccess"
         - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
       AssumeRolePolicyDocument: 
-        Version: "2020-10-10"
+        Version: "2012-10-17"
         Statement: 
           - 
             Effect: "Allow"
@@ -93,6 +95,7 @@ Resources:
         FromPort: 80
         ToPort: 80
         CidrIp: 0.0.0.0/0
+
    EC2SecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -100,21 +103,17 @@ Resources:
       VpcId:
         Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        SourceSecurityGroupId: !Ref LBSecGroup
-        FromPort: 80
-        ToPort: 80
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-      SourceSecurityGroupId: 
-        Fn::ImportValue: !Sub "${EnvironmentName}-BASTIONSecGroupID"
-        FromPort: 22
-        ToPort: 22
-      SecurityGroupEgress:
-      - IpProtocol: tcp
-        FromPort: 0
-        ToPort: 65535
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          SourceSecurityGroupId: !Ref LBSecGroup
+          FromPort: 80
+          ToPort: 80
+
+        - IpProtocol: tcp
+          SourceSecurityGroupId: 
+            Fn::ImportValue: !Sub "${EnvironmentName}-BASTIONSecGroupID"
+          FromPort: 22
+          ToPort: 22  
+
     # <---- CREATE Target Group, Load Balancer, Listener and Profile Listener
 
 
@@ -127,17 +126,6 @@ Resources:
       - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
       SecurityGroups:
       - Ref: LBSecGroup
-   Listener:    #REQUIRED
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-      - Type: forward
-        TargetGroupArn:
-          Ref: AppTargetGroup
-      LoadBalancerArn:
-        Ref: WebAppLB
-      Port: '80'
-      Protocol: HTTP
 
 
    AppTargetGroup:
@@ -147,11 +135,11 @@ Resources:
     Properties:
       TargetType: instance  #the default is "instance" but we must use ip to forward to fargate
       VpcId: 
-          AVALANCHE-VPCID" 
+        Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
       Protocol: HTTP
       Port: 80
       HealthCheckPath: /
-      HealthCheckIntervalSeconds: 10
+      HealthCheckIntervalSeconds: 15
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 5
@@ -165,7 +153,7 @@ Resources:
         Conditions:
         - Field: path-pattern
           Values: [/]   #For lets say two paths
-        ListenerArn: !Ref 'Listener'
+        ListenerArn: !Ref 'ALBListener'
         Priority: 1
 
 

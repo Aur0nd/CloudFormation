@@ -48,218 +48,209 @@ Resources:
       IamInstanceProfile: !Ref InstanceProfileRole
       SecurityGroups:
         - !Ref EC2SecGroup
-      UserData:
-        Fn::Base64: !Sub |
-             - "#!/bin/bash \n"
-             - "apt-get update -y \n"
-             - "apt-get install unzip awscli -y \n"
-             - "apt-get install apache2 -y \n"
-             - "systemctl start apache2.service \n"
-             - "cd /var/www/html \n "
-             - "aws s3 cp s3://udacity-demo-aurond/udacity.zip . \n"
-             - "unzip -o udacity.zip \n"
+      UserData:  
+        Fn::Join: [ "", ["#!/bin/bash \n", "apt-get update -y \n", "apt-get install unzip awscli -y \n", "apt-get install apache2 -y \n", "systemctl start apache2.service \n", "cd /var/www/html \n", "aws s3 cp s3://udacity-demo-aurond/udacity.zip . \n", "unzip -o udacity.zip \n" ] ]
+   S3ReadRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/CloudWatchFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+      AssumeRolePolicyDocument: 
+        Version: "2020-10-10"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
 
-      S3ReadRole:
-        Type: AWS::IAM::Role
-        Properties:
-          ManagedPolicyArns: 
-            - "arn:aws:iam::aws:policy/CloudWatchFullAccess"
-            - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-          AssumeRolePolicyDocument: 
-            Version: "2020-10-10"
-            Statement: 
-              - 
-                Effect: "Allow"
-                Principal: 
-                  Service: 
-                    - "ec2.amazonaws.com"
-                Action: 
-                  - "sts:AssumeRole"
-          Path: "/"
-
-        InstanceProfileRole: 
-          Type: AWS::IAM::InstanceProfile
-          Properties: 
-            Path: "/"
-            Roles: 
-              - !Ref S3ReadRole
+   InstanceProfileRole: 
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      Path: "/"
+      Roles: 
+        - !Ref S3ReadRole
  # <-- Role, ProfileRole, LaunchConfig
  # ---> SecGroup for LB, Sec Group for Instance
 
-      LBSecGroup:
-        Type: AWS::EC2::SecurityGroup
-        Properties:
-          GroupDescription: Allow http to our load balancer
-          VpcId:
-            Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
-          SecurityGroupIngress:
-          - IpProtocol: tcp
-            FromPort: 80
-            ToPort: 80
-            CidrIp: 0.0.0.0/0
-          SecurityGroupEgress:
-          - IpProtocol: tcp
-            FromPort: 80
-            ToPort: 80
-            CidrIp: 0.0.0.0/0
-      EC2SecGroup:
-        Type: AWS::EC2::SecurityGroup
-        Properties:
-          GroupDescription: Allow http to our load balancer
-          VpcId:
-            Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
-          SecurityGroupIngress:
-          - IpProtocol: tcp
-            SourceSecurityGroupId: !Ref LBSecGroup
-            FromPort: 80
-            ToPort: 80
-          SecurityGroupIngress:
-          - IpProtocol: tcp
-          SourceSecurityGroupId: 
-            Fn::ImportValue: !Sub "${EnvironmentName}-BASTIONSecGroupID"
-            FromPort: 22
-            ToPort: 22
-          SecurityGroupEgress:
-          - IpProtocol: tcp
-            FromPort: 0
-            ToPort: 65535
-            CidrIp: 0.0.0.0/0
+   LBSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to our load balancer
+      VpcId:
+        Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+   EC2SecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to our load balancer
+      VpcId:
+        Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        SourceSecurityGroupId: !Ref LBSecGroup
+        FromPort: 80
+        ToPort: 80
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+      SourceSecurityGroupId: 
+        Fn::ImportValue: !Sub "${EnvironmentName}-BASTIONSecGroupID"
+        FromPort: 22
+        ToPort: 22
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65535
+        CidrIp: 0.0.0.0/0
     # <---- CREATE Target Group, Load Balancer, Listener and Profile Listener
 
 
-      WebAppLB:
-        Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-        Properties:
-          Scheme: internet-facing
-          Subnets:
-          - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
-          - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
-          SecurityGroups:
-          - Ref: LBSecGroup
-      Listener:    #REQUIRED
-        Type: AWS::ElasticLoadBalancingV2::Listener
-        Properties:
-          DefaultActions:
-          - Type: forward
-            TargetGroupArn:
-              Ref: AppTargetGroup
-          LoadBalancerArn:
-            Ref: WebAppLB
-          Port: '80'
-          Protocol: HTTP
+   WebAppLB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      Subnets:
+      - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
+      - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
+      SecurityGroups:
+      - Ref: LBSecGroup
+   Listener:    #REQUIRED
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: AppTargetGroup
+      LoadBalancerArn:
+        Ref: WebAppLB
+      Port: '80'
+      Protocol: HTTP
 
 
-      AppTargetGroup:
-        Type: AWS::ElasticLoadBalancingV2::TargetGroup
-        DependsOn: 
-          - AppLoadBalancer
-        Properties:
-          TargetType: instance  #the default is "instance" but we must use ip to forward to fargate
-          VpcId: 
-             AVALANCHE-VPCID" 
-          Protocol: HTTP
-          Port: 80
-          HealthCheckPath: /
-          HealthCheckIntervalSeconds: 10
-          HealthCheckTimeoutSeconds: 5
-          HealthyThresholdCount: 2
-          UnhealthyThresholdCount: 5
+   AppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: 
+      - WebAppLB
+    Properties:
+      TargetType: instance  #the default is "instance" but we must use ip to forward to fargate
+      VpcId: 
+          AVALANCHE-VPCID" 
+      Protocol: HTTP
+      Port: 80
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
 
-      ALBListenerRule:
-          Type: AWS::ElasticLoadBalancingV2::ListenerRule
-          Properties:
-            Actions:
-            - Type: forward
-              TargetGroupArn: !Ref 'AppTargetGroup'
-            Conditions:
-            - Field: path-pattern
-              Values: [/]   #For lets say two paths
-            ListenerArn: !Ref 'Listener'
-            Priority: 1
+   ALBListenerRule:
+      Type: AWS::ElasticLoadBalancingV2::ListenerRule
+      Properties:
+        Actions:
+        - Type: forward
+          TargetGroupArn: !Ref 'AppTargetGroup'
+        Conditions:
+        - Field: path-pattern
+          Values: [/]   #For lets say two paths
+        ListenerArn: !Ref 'Listener'
+        Priority: 1
 
 
-      ALBListener:
-        Type: AWS::ElasticLoadBalancingV2::Listener
-        DependsOn:
-          - WebAppLB
-          - AppTargetGroup
-        Properties:
-          DefaultActions:
-          - Type: forward
-            TargetGroupArn: !Ref AppTargetGroup
-          LoadBalancerArn: !Ref WebAppLB
-          Port: 80
-          Protocol: HTTP 
+   ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn:
+      - WebAppLB
+      - AppTargetGroup
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref AppTargetGroup
+      LoadBalancerArn: !Ref WebAppLB
+      Port: 80
+      Protocol: HTTP 
 
     #---> Create ASG, Scale UP and Down policies
 
-      WebServASGroup:
-        Type: AWS::AutoScaling::AutoScalingGroup
-        Properties:
-          VPCZoneIdentifier:
-          - Fn::ImportValue: !Sub "${EnvironmentName}-PRI2-SN"
-          - Fn::ImportValue: !Sub "${EnvironmentName}-PRI1-SN"
-          LaunchConfigurationName:
-            Ref: LaunchConfig
-          MinSize: '4'
-          MaxSize: '5'
-          TargetGroupARNs:
-          - Ref: AppTargetGroup
+   WebServASGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+      - Fn::ImportValue: !Sub "${EnvironmentName}-PRI2-SN"
+      - Fn::ImportValue: !Sub "${EnvironmentName}-PRI1-SN"
+      LaunchConfigurationName:
+        Ref: LaunchConfig
+      MinSize: '4'
+      MaxSize: '5'
+      TargetGroupARNs:
+      - Ref: AppTargetGroup
 
-      WebServerScaleUpPolicy:
-        Type: AWS::AutoScaling::ScalingPolicy
-        Properties:
-          AdjustmentType: ChangeInCapacity
-          AutoScalingGroupName:
-            Ref: WebServerGroup
-          Cooldown: '60'
-          ScalingAdjustment: '1'
+   WebServerScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName:
+        Ref: WebServASGroup
+      Cooldown: '60'
+      ScalingAdjustment: '1'
 
-      WebServerScaleDownPolicy:
-        Type: AWS::AutoScaling::ScalingPolicy
-        Properties:
-          AdjustmentType: ChangeInCapacity
-          AutoScalingGroupName:
-            Ref: WebServerGroup
-          Cooldown: '60'
-          ScalingAdjustment: "-1"
+   WebServerScaleDownPolicy:
+      Type: AWS::AutoScaling::ScalingPolicy
+      Properties:
+        AdjustmentType: ChangeInCapacity
+        AutoScalingGroupName:
+          Ref: WebServASGroup
+        Cooldown: '60'
+        ScalingAdjustment: "-1"
     #---> Create Alarm High/Low based on CPU
 
-      CPUAlarmHigh:
-        Type: AWS::CloudWatch::Alarm
-        Properties:
-          AlarmDescription: Scale-up if CPU > 90% for 10 minutes
-          MetricName: CPUUtilization
-          Namespace: AWS/EC2
-          Statistic: Average
-          Period: '300'
-          EvaluationPeriods: '2'
-          Threshold: '90'
-          AlarmActions:
-          - Ref: WebServerScaleUpPolicy
-          Dimensions:
-          - Name: AutoScalingGroupName
-            Value:
-              Ref: WebServerGroup
-          ComparisonOperator: GreaterThanThreshold
+   CPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale-up if CPU > 90% for 10 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '2'
+      Threshold: '90'
+      AlarmActions:
+      - Ref: WebServerScaleUpPolicy
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value:
+          Ref: WebServASGroup
+      ComparisonOperator: GreaterThanThreshold
 
-      CPUAlarmLow:
-        Type: AWS::CloudWatch::Alarm
-        Properties:
-          AlarmDescription: Scale-down if CPU < 70% for 10 minutes
-          MetricName: CPUUtilization
-          Namespace: AWS/EC2
-          Statistic: Average
-          Period: '300'
-          EvaluationPeriods: '2'
-          Threshold: '70'
-          AlarmActions:
-          - Ref: WebServerScaleDownPolicy
-          Dimensions:
-          - Name: AutoScalingGroupName
-            Value:
-              Ref: WebServerGroup
-          ComparisonOperator: LessThanThreshold
+   CPUAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale-down if CPU < 70% for 10 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '2'
+      Threshold: '70'
+      AlarmActions:
+      - Ref: WebServerScaleDownPolicy
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value:
+          Ref: WebServASGroup
+      ComparisonOperator: LessThanThreshold
 
 
 
@@ -271,5 +262,5 @@ Outputs:
       - ''
       - - http://
         - Fn::GetAtt:
-          - AppLoadBalancer
+          - WebAppLB
           - DNSName

@@ -20,7 +20,7 @@ Resources:
   BastionInstance:    #Create the EC2 and attach the SecGroup
       Type: AWS::EC2::Instance
       Properties:
-          ImageId: ami-005bdb005fb00e791
+          ImageId: ami-07a29e5e945228fa1
           KeyName: !Ref KeyName   #Make the key as a var for rotation
           InstanceType: t2.micro #No need for var, bastion shouldn't be dynamic
           SecurityGroupIds:

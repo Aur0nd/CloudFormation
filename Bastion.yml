@@ -5,7 +5,6 @@ Parameters:
   EnvironmentName:
     Description: Don't forget, we always setup the Parameters we gonna use in the script
     Type: String
-    Default: AVALANCHE
 
 
    # Don't forget to Import, Don't Hardcode stuff if you can automate, or just use Default: AVALANCHE
@@ -13,7 +12,6 @@ Parameters:
   KeyName: 
     Description: "Create the Key manually, or ssm"
     Type: "AWS::EC2::KeyPair::KeyName"
-    Default: BastionKey #The name of the key in the console
 
 Resources:
 
@@ -59,13 +57,13 @@ Resources:
 Outputs:           #Export Vars for the next Script
 
  InstanceId: 
-  Description: "InstanceId of the newly created EC2 instance"
+  Description: "Bastion's InstanceId"
   Value: 
    Ref: BastionInstance
  
  
  PublicIP: 
-  Description: "Public IP address of the newly created EC2 instance"
+  Description: "Bastion's Public IP"
   Value: 
    "Fn::GetAtt": 
     - BastionInstance

@@ -4,10 +4,6 @@
     "ParameterValue": "ami-06e54d05255faf8f6"
   },
   {
-    "ParameterKey": "KeyName",
-    "ParameterValue": "BastionKey"
-  },
-  {
     "ParameterKey": "InstanceType",
     "ParameterValue": "t3.small"
   }

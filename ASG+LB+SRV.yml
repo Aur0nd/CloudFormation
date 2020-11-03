@@ -3,7 +3,7 @@ Description: >
     Create ASG which deployes 4x t2.micro in the private subnet
     Launch Configuration
     Two servers in each Private subnet (4 in total)
-      Specs: 4GB RAM, 2vCPU, 10GB Disk, Ubuntu 18(pff..)
+      Specs: 4GB RAM, 2vCPU, 10GB Disk, Ubuntu 20
     IAM role for S3 pull
       # 1) Launch Config 1.1) Role for TargetGroup 1.2)Profile for Role  2)Security Group for Load Balancer 
         3)SecGroup for Instance 4)Target Group 5)LoadBalancer 6)ASG 
@@ -24,10 +24,11 @@ Parameters:
       Description: You might want to upscale later on
       Type: String
 
-  KeyName: 
-    Description: "Create the Key manually, or ssm"
-    Type: "AWS::EC2::KeyPair::KeyName"
-    Default: BastionKey #The name of the key in the console
+          #ENABLE ONLY FOR TROUBLESHOOTING
+  #KeyName: 
+    #Description: "Create the Key manually, or ssm"
+    #Type: "AWS::EC2::KeyPair::KeyName"
+    #Default: BastionKey #The name of the key in the console
       
 
 Resources:
@@ -37,7 +38,6 @@ Resources:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties: 
       ImageId: !Ref AMI
-      KeyName: !Ref KeyName
       InstanceType: !Ref InstanceType
       BlockDeviceMappings: 
       - DeviceName: /dev/sda1
@@ -54,7 +54,6 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       ManagedPolicyArns: 
-        - "arn:aws:iam::aws:policy/CloudWatchFullAccess"
         - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
       AssumeRolePolicyDocument: 
         Version: "2012-10-17"
@@ -68,7 +67,7 @@ Resources:
               - "sts:AssumeRole"
       Path: "/"
 
-   InstanceProfileRole: 
+   InstanceProfileRole: #Create new profile
     Type: AWS::IAM::InstanceProfile
     Properties: 
       Path: "/"
@@ -106,19 +105,12 @@ Resources:
           FromPort: 80
           ToPort: 80
 
-        - IpProtocol: tcp
-          SourceSecurityGroupId: 
-            Fn::ImportValue: !Sub "${EnvironmentName}-BASTIONSecGroupID"
-          FromPort: 22
-          ToPort: 22  
-
     # <---- CREATE Target Group, Load Balancer, Listener and Profile Listener
 
 
    WebAppLB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Scheme: internet-facing
       Subnets:
       - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
       - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
@@ -170,10 +162,10 @@ Resources:
 
     #---> Create ASG, Scale UP and Down policies
 
-   WebServASGroup:
+   WebServASGroup: #ASG in the 4 priate subnets
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier:
+      VPCZoneIdentifier: 
       - Fn::ImportValue: !Sub "${EnvironmentName}-PRI2-SN"
       - Fn::ImportValue: !Sub "${EnvironmentName}-PRI1-SN"
       LaunchConfigurationName:
@@ -200,49 +192,11 @@ Resources:
           Ref: WebServASGroup
         Cooldown: '60'
         ScalingAdjustment: "-1"
-    #---> Create Alarm High/Low based on CPU
-
-   CPUAlarmHigh:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: Scale-up if CPU > 90% for 10 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: '300'
-      EvaluationPeriods: '2'
-      Threshold: '90'
-      AlarmActions:
-      - Ref: WebServerScaleUpPolicy
-      Dimensions:
-      - Name: AutoScalingGroupName
-        Value:
-          Ref: WebServASGroup
-      ComparisonOperator: GreaterThanThreshold
-
-   CPUAlarmLow:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: Scale-down if CPU < 70% for 10 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: '300'
-      EvaluationPeriods: '2'
-      Threshold: '70'
-      AlarmActions:
-      - Ref: WebServerScaleDownPolicy
-      Dimensions:
-      - Name: AutoScalingGroupName
-        Value:
-          Ref: WebServASGroup
-      ComparisonOperator: LessThanThreshold
-
-
+    
 
 Outputs:
   URL:
-    Description: The URL of the website
+    Description: URL
     Value:
       Fn::Join:
       - ''

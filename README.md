@@ -1,4 +1,12 @@
 # CloudFormation
+
+          EXPLAIN:
+  These scripts were created by me for automating various IT - AWS tasks, feel free to commit changes
+
+
+
+
+OPTIONAL: 1. mv {ScriptName}.sh /usr/bin/createuser && chmod +x /usr/bin/createuser
 Deploy high. availability httpd 
  ""     Create AppLoadBalancer with a public IP(Hostname) Healthcheck :80
     Create ASG which deployes 4x t3 in the private subnet
@@ -9,6 +17,7 @@ Deploy high. availability httpd
       # 1) Launch Config 1.1) Role for TargetGroup 1.2)Profile for Role  2)Security Group for Load Balancer 
         3)SecGroup for Instance 4)Target Group 5)LoadBalancer 6)ASG 
        7)Listener 
+
 
 
 Step 1 - Deploy the Network

@@ -1,7 +1,7 @@
-# CloudFormation
+  # CloudFormation
 
-                EXPLAIN:
-         These scripts were created by me for automating various IT - AWS tasks, feel free to commit changes
+                                                  EXPLAIN:
+         I've created these scripts for automating various IT - AWS tasks, feel free to commit changes
 
 
 
